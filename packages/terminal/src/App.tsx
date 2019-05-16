@@ -21,7 +21,7 @@ const App: React.FC = () => {
                 setActiveTab={setActiveTab}
                 onNewTab={onNewTab}
             />
-            <Term tabs={tabs} setTabs={setTabs} />
+            <Term tabs={tabs} setTabs={setTabs} activeTab={activeTab} />
         </div>
     );
 }

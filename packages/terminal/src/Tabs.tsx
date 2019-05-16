@@ -1,4 +1,5 @@
 import React from 'react';
+import Axios from 'axios';
 
 export const TAB_HEIGHT = 25;
 
@@ -11,6 +12,7 @@ const onClickTab = (
     tab: string,
 ) => () => {
     setActiveTab(tab);
+    Axios.post(`/terminals/pid/${tab}`); // need to move this in Term.tsx & clear tab & focus
 }
 
 interface Props {

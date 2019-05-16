@@ -70,14 +70,18 @@ const setContainer = (
 interface Props {
     tabs: string[],
     setTabs: React.Dispatch<React.SetStateAction<string[]>>,
+    activeTab: string,
 }
-export const Term = ({ tabs, setTabs }: Props) => {
+export const Term = ({ tabs, setTabs, activeTab }: Props) => {
     let container: HTMLDivElement | null = null;
     React.useEffect(() => {
         if (container) {
             setContainer(tabs, setTabs)(container);
         }
     }, [container]);
+    React.useEffect(() => {
+
+    }, [activeTab]);
     return (
         <div ref={ref => { if (ref) container = ref; }} />
     );

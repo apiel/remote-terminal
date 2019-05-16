@@ -11,6 +11,8 @@ const port = 3005;
 
 const terminals = {};
 const logs = {};
+let activePid: number;
+let webSocket: any;
 
 async function start() {
     info('Starting server.');
@@ -29,29 +31,61 @@ async function start() {
     //     );
     // }
 
+    app.all('/terminals/pid/:pid', (req: Request, res: Response) => {
+        activePid = parseInt(req.params.pid, 10);
+        if (webSocket) {
+            webSocket.send(logs[terminals[activePid].pid]);
+        }
+        res.send('ok');
+        res.end();
+    });
+
     app.all('/terminals/list', (req: Request, res: Response) => {
         res.send(Object.keys(terminals));
         res.end();
     });
+
+    // string message buffering
+    function buffer(socket, timeout: number) {
+        let s = '';
+        let sender = null;
+        return (data) => {
+            s += data;
+            if (!sender) {
+                sender = setTimeout(() => {
+                    socket.send(s);
+                    s = '';
+                    sender = null;
+                }, timeout);
+            }
+        };
+    }
 
     app.all('/terminals/new', (req: Request, res: Response) => {
         const cols = parseInt(req.query.cols, 10);
         const rows = parseInt(req.query.rows, 10);
 
         const term = spawn(process.platform === 'win32' ? 'cmd.exe' : 'bash', [], {
-                name: 'xterm-color',
-                cols: cols || 80,
-                rows: rows || 24,
-                cwd: process.env.PWD,
-                env: process.env,
-                encoding: 'utf8',
-            });
+            name: 'xterm-color',
+            cols: cols || 80,
+            rows: rows || 24,
+            cwd: process.env.PWD,
+            env: process.env,
+            encoding: 'utf8',
+        });
 
         info('Created terminal with PID: ', term.pid);
         terminals[term.pid] = term;
         logs[term.pid] = '';
         term.on('data', (data) => {
             logs[term.pid] += data;
+            if (webSocket && activePid === term.pid) {
+                try {
+                    buffer(webSocket, 5)(data);
+                } catch (ex) {
+                    // The WebSocket is not open, ignore
+                }
+            }
         });
         res.send(term.pid.toString());
         res.end();
@@ -69,43 +103,21 @@ async function start() {
     // });
 
     (app as any).ws('/terminals/:pid', (ws: any, req: any) => {
-        const term = terminals[parseInt(req.params.pid, 10)];
-        info('Connected to terminal ', term.pid);
-        ws.send(logs[term.pid]);
+        webSocket = ws;
+        activePid = parseInt(req.params.pid, 10);
 
-        // string message buffering
-        function buffer(socket, timeout: number) {
-            let s = '';
-            let sender = null;
-            return (data) => {
-                s += data;
-                if (!sender) {
-                    sender = setTimeout(() => {
-                        socket.send(s);
-                        s = '';
-                        sender = null;
-                    }, timeout);
-                }
-            };
-        }
-        const send = buffer(ws, 5);
+        info('Connected to terminal ', terminals[activePid].pid);
+        ws.send(logs[terminals[activePid].pid]);
 
-        term.on('data', (data: string) => {
-            try {
-                send(data);
-            } catch (ex) {
-                // The WebSocket is not open, ignore
-            }
-        });
         ws.on('message', (msg: string) => {
-            term.write(msg);
+            terminals[activePid].write(msg);
         });
         ws.on('close', () => {
-            term.kill();
-            info('Closed terminal ', term.pid);
+            terminals[activePid].kill();
+            info('Closed terminal ', terminals[activePid].pid);
             // Clean things up
-            delete terminals[term.pid];
-            delete logs[term.pid];
+            delete terminals[terminals[activePid].pid];
+            delete logs[terminals[activePid].pid];
         });
     });
 
