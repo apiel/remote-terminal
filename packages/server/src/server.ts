@@ -8,7 +8,6 @@ import { Response, Request } from 'express-serve-static-core';
 // import * as bodyParser from 'body-parser';
 
 const port = 3005;
-const USE_BINARY_UTF8 = false;
 
 const terminals = {};
 const logs = {};
@@ -30,12 +29,12 @@ async function start() {
     //     );
     // }
 
-    app.all('/terminals', (req: Request, res: Response) => {
-        // if (Object.keys(terminals).length) {
-        //   res.send(Object.keys(terminals)[0].toString());
-        //   res.end();
-        //   return;
-        // }
+    app.all('/terminals/list', (req: Request, res: Response) => {
+        res.send(Object.keys(terminals));
+        res.end();
+    });
+
+    app.all('/terminals/new', (req: Request, res: Response) => {
         const cols = parseInt(req.query.cols, 10);
         const rows = parseInt(req.query.rows, 10);
 
@@ -45,7 +44,7 @@ async function start() {
                 rows: rows || 24,
                 cwd: process.env.PWD,
                 env: process.env,
-                encoding: USE_BINARY_UTF8 ? null : 'utf8'
+                encoding: 'utf8',
             });
 
         info('Created terminal with PID: ', term.pid);
@@ -75,7 +74,7 @@ async function start() {
         ws.send(logs[term.pid]);
 
         // string message buffering
-        function buffer(socket, timeout) {
+        function buffer(socket, timeout: number) {
             let s = '';
             let sender = null;
             return (data) => {
@@ -89,34 +88,16 @@ async function start() {
                 }
             };
         }
-        // binary message buffering
-        function bufferUtf8(socket, timeout) {
-            let buf = [];
-            let sender = null;
-            let length = 0;
-            return (data) => {
-                buf.push(data);
-                length += data.length;
-                if (!sender) {
-                    sender = setTimeout(() => {
-                        socket.send(Buffer.concat(buf, length));
-                        buf = [];
-                        sender = null;
-                        length = 0;
-                    }, timeout);
-                }
-            };
-        }
-        const send = USE_BINARY_UTF8 ? bufferUtf8(ws, 5) : buffer(ws, 5);
+        const send = buffer(ws, 5);
 
-        term.on('data', (data) => {
+        term.on('data', (data: string) => {
             try {
                 send(data);
             } catch (ex) {
                 // The WebSocket is not open, ignore
             }
         });
-        ws.on('message', (msg) => {
+        ws.on('message', (msg: string) => {
             term.write(msg);
         });
         ws.on('close', () => {

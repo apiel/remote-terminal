@@ -16,8 +16,8 @@ const tabsStyle = {
 }
 
 interface Props {
-    tabs: number[],
-    setTabs: React.Dispatch<React.SetStateAction<number[]>>,
+    tabs: string[],
+    setTabs: React.Dispatch<React.SetStateAction<string[]>>,
 }
 export const Tabs = ({ tabs }: Props) => {
     return (

@@ -5,7 +5,7 @@ import { Term } from './Term';
 import { Tabs } from './Tabs';
 
 const App: React.FC = () => {
-    const [tabs, setTabs] = React.useState<number[]>([]);
+    const [tabs, setTabs] = React.useState<string[]>([]);
     return (
         <div className="App">
             <Tabs tabs={tabs} setTabs={setTabs} />
