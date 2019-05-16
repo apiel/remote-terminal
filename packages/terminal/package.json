@@ -1,0 +1,45 @@
+{
+  "name": "terminal",
+  "version": "0.1.0",
+  "private": true,
+  "proxy": "http://127.0.0.1:3005",
+  "dependencies": {
+    "@types/jest": "24.0.13",
+    "@types/node": "12.0.2",
+    "@types/react": "16.8.17",
+    "@types/react-dom": "16.8.4",
+    "axios": "^0.18.0",
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6",
+    "react-scripts": "3.0.1",
+    "typescript": "3.4.5",
+    "xterm": "^3.13.0",
+    "xterm-addon-attach": "0.1.0-beta8"
+  },
+  "scripts": {
+    "fix": "rm -rf node_modules/xterm/lib && cp -r ../../../../lib/xterm.js/lib node_modules/xterm/lib && cp -f ../../../../lib/xterm.js/typings/xterm.d.ts node_modules/xterm/typings/xterm.d.ts",
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/axios": "^0.14.0",
+    "@types/xterm": "^3.0.0"
+  }
+}

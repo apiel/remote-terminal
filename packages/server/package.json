@@ -1,0 +1,39 @@
+{
+    "name": "isomor-server",
+    "version": "0.11.1",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "author": "Alexandre Piel <alexandre.piel@gmail.com>",
+    "license": "MIT",
+    "bin": "dist/server.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/apiel/isomor"
+    },
+    "engines": {
+        "node": ">=11"
+    },
+    "scripts": {
+        "prepublishOnly": "yarn build",
+        "start": "ts-node src/server.ts",
+        "prebuild": "rm -rf dist/",
+        "build": "tsc -p tsconfig.json && chmod +x dist/server.js",
+        "lint": "tslint -p tsconfig.json -c tslint.json"
+    },
+    "dependencies": {
+        "body-parser": "^1.18.3",
+        "express": "^4.16.4",
+        "express-ws": "^4.0.0",
+        "logol": "^0.0.1",
+        "node-pty": "^0.8.1",
+        "typescript": "^3.2.4"
+    },
+    "devDependencies": {
+        "@types/body-parser": "^1.17.0",
+        "@types/express": "^4.16.1",
+        "@types/express-ws": "^3.0.0",
+        "@types/node": "^11.12.2",
+        "ts-node": "^8.0.3",
+        "tslint": "^5.12.1"
+    }
+}
