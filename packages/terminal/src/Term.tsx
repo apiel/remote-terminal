@@ -1,12 +1,13 @@
 import React from 'react';
 import axios from 'axios';
 import { Terminal } from 'xterm';
+import * as fit from 'xterm/lib/addons/fit/fit';
 import { AttachAddon } from 'xterm-addon-attach';
-import * as fullscreen from 'xterm/lib/addons/fullscreen/fullscreen';
 import 'xterm/dist/xterm.css';
-import 'xterm/dist/addons/fullscreen/fullscreen.css';
 
-Terminal.applyAddon(fullscreen);
+const TAB_HEIGHT = 40;
+
+Terminal.applyAddon(fit);
 
 function runRealTerminal(term: Terminal, socket: WebSocket): void {
     term.loadAddon(new AttachAddon(socket));
@@ -18,12 +19,13 @@ const setContainer = async (container: HTMLDivElement) => {
         const windowsMode = ['Windows', 'Win16', 'Win32', 'WinCE'].indexOf(navigator.platform) >= 0;
         const term = new Terminal({
             windowsMode,
-            // cols: 80,
         });
         (window as any).term = term;  // Expose `term` to window for debugging purposes
         term.open(container);
-        (term as any).toggleFullScreen(true);
         term.focus();
+
+        container.style.height = (window.innerHeight - TAB_HEIGHT) + 'px';
+        (term as any).fit();
 
         const { data: pid } = await axios.post(`/terminals?cols=${term.cols}&rows=${term.rows}`, {});
         console.log('pid', pid);

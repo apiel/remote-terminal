@@ -1,0 +1,5 @@
+@import '~antd/dist/antd.css';
+
+.ant-tabs-bar {
+    margin: 0;
+}
