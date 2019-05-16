@@ -5,6 +5,15 @@
     cursor: pointer;
 }
 
+.tab:hover {
+    background: #333;
+}
+
+.tab.active {
+    color: #78d834;
+    font-weight: bold;
+}
+
 .tabs {
     background: #111;
     color: #999;

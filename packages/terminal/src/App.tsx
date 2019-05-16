@@ -6,6 +6,7 @@ import { Tabs } from './Tabs';
 
 const App: React.FC = () => {
     const [tabs, setTabs] = React.useState<string[]>([]);
+    const [activeTab, setActiveTab] = React.useState<string>('');
     const onNewTab = async () => {
         if (openNewTerm) {
             const pid = await openNewTerm(tabs);
@@ -13,7 +14,13 @@ const App: React.FC = () => {
     }
     return (
         <div className="App">
-            <Tabs tabs={tabs} setTabs={setTabs} onNewTab={onNewTab} />
+            <Tabs
+                tabs={tabs}
+                setTabs={setTabs}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                onNewTab={onNewTab}
+            />
             <Term tabs={tabs} setTabs={setTabs} />
         </div>
     );
