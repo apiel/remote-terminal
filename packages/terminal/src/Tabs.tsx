@@ -1,23 +1,29 @@
 import React from 'react';
-import { Tabs as ATabs } from 'antd';
 
-export class Tabs extends React.Component {
-    remove = (targetKey: any) => {
-        console.log('remove?', targetKey);
-    };
+export const TAB_HEIGHT = 25;
 
-    render() {
-        return (
-            <ATabs
-                hideAdd
-                onChange={e => console.log('tab change', e)}
-                // activeKey={this.state.activeKey}
-                type="editable-card"
-                onEdit={e => console.log('tab edit', e)}
-            >
-                <ATabs.TabPane tab="hello" closable={true} />
-                <ATabs.TabPane tab="hello2" closable={true} />
-            </ATabs>
-        );
-    }
+const tabStyle = {
+    height: TAB_HEIGHT,
+    padding: '0px 10px',
+    float: 'left' as 'left',
+    borderRight: '1px #333 solid',
+}
+
+const tabsStyle = {
+    height: TAB_HEIGHT,
+    background: '#111',
+    color: '#999',
+}
+
+interface Props {
+    tabs: number[],
+    setTabs: React.Dispatch<React.SetStateAction<number[]>>,
+}
+export const Tabs = ({ tabs }: Props) => {
+    return (
+        <div style={tabsStyle}>
+            {tabs.map(tab => <div style={tabStyle} key={tab}>{tab}</div>)}
+            <div style={tabStyle}>+</div>
+        </div>
+    );
 }

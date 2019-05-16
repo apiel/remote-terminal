@@ -4,8 +4,7 @@ import { Terminal } from 'xterm';
 import * as fit from 'xterm/lib/addons/fit/fit';
 import { AttachAddon } from 'xterm-addon-attach';
 import 'xterm/dist/xterm.css';
-
-const TAB_HEIGHT = 40;
+import { TAB_HEIGHT } from './Tabs';
 
 Terminal.applyAddon(fit);
 
@@ -13,7 +12,10 @@ function runRealTerminal(term: Terminal, socket: WebSocket): void {
     term.loadAddon(new AttachAddon(socket));
 }
 
-const setContainer = async (container: HTMLDivElement) => {
+const setContainer = (
+    tabs: number[],
+    setTabs: React.Dispatch<React.SetStateAction<number[]>>,
+) => async (container: HTMLDivElement) => {
     if (container) {
         console.log('Load terminal container');
         const windowsMode = ['Windows', 'Win16', 'Win32', 'WinCE'].indexOf(navigator.platform) >= 0;
@@ -28,7 +30,7 @@ const setContainer = async (container: HTMLDivElement) => {
         (term as any).fit();
 
         const { data: pid } = await axios.post(`/terminals?cols=${term.cols}&rows=${term.rows}`, {});
-        console.log('pid', pid);
+        setTabs([...tabs, pid]);
         const { protocol, port, hostname } = window.location;
         const wsProtocol = (protocol === 'https:') ? 'wss:' : 'ws:';
         // ${port || 80}
@@ -40,8 +42,18 @@ const setContainer = async (container: HTMLDivElement) => {
     }
 }
 
-export const Term = () => {
+interface Props {
+    tabs: number[],
+    setTabs: React.Dispatch<React.SetStateAction<number[]>>,
+}
+export const Term = ({ tabs, setTabs }: Props) => {
+    let container: HTMLDivElement | null = null;
+    React.useEffect(() => {
+        if (container) {
+            setContainer(tabs, setTabs)(container);
+        }
+    }, [container]);
     return (
-        <div ref={setContainer} />
+        <div ref={ref => { if (ref) container = ref; }} />
     );
 }

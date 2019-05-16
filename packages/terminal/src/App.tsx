@@ -5,13 +5,11 @@ import { Term } from './Term';
 import { Tabs } from './Tabs';
 
 const App: React.FC = () => {
-    const remove = (targetKey: any) => {
-        console.log('targetKey',targetKey);
-    }
+    const [tabs, setTabs] = React.useState<number[]>([]);
     return (
         <div className="App">
-            <Tabs />
-            <Term />
+            <Tabs tabs={tabs} setTabs={setTabs} />
+            <Term tabs={tabs} setTabs={setTabs} />
         </div>
     );
 }
