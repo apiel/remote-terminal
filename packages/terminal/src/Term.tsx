@@ -12,11 +12,14 @@ function runRealTerminal(term: Terminal, socket: WebSocket): void {
     term.loadAddon(new AttachAddon(socket));
 }
 
+export let openNewTerm: ((tabs: string[]) => Promise<string>) | null = null;
+
 const newTerm  = (
-    tabs: string[],
     setTabs: React.Dispatch<React.SetStateAction<string[]>>,
     term: Terminal,
-) => async () => {
+) => async (
+    tabs: string[],
+) => {
     const { data: pid } = await axios.post(`/terminals/new?cols=${term.cols}&rows=${term.rows}`, {});
     setTabs([...tabs, pid]);
     return pid;
@@ -46,13 +49,15 @@ const setContainer = (
         (window as any).term = term;  // Expose `term` to window for debugging purposes
         term.open(container);
         term.focus();
+        openNewTerm = newTerm(setTabs, term);
+
 
         container.style.height = (window.innerHeight - TAB_HEIGHT) + 'px';
         (term as any).fit();
 
         const { data: list } = await axios.post(`/terminals/list`, {});
         if (!list.length) {
-            const pid = await newTerm(tabs, setTabs, term)();
+            const pid = await openNewTerm(tabs);
             openWS(term, pid);
         } else {
             setTabs(list);

@@ -2,28 +2,20 @@ import React from 'react';
 
 export const TAB_HEIGHT = 25;
 
-const tabStyle = {
+const tabHeightStyle = {
     height: TAB_HEIGHT,
-    padding: '0px 10px',
-    float: 'left' as 'left',
-    borderRight: '1px #333 solid',
-}
-
-const tabsStyle = {
-    height: TAB_HEIGHT,
-    background: '#111',
-    color: '#999',
 }
 
 interface Props {
     tabs: string[],
     setTabs: React.Dispatch<React.SetStateAction<string[]>>,
+    onNewTab: () => void,
 }
-export const Tabs = ({ tabs }: Props) => {
+export const Tabs = ({ tabs, onNewTab }: Props) => {
     return (
-        <div style={tabsStyle}>
-            {tabs.map(tab => <div style={tabStyle} key={tab}>{tab}</div>)}
-            <div style={tabStyle}>+</div>
+        <div className="tabs" style={tabHeightStyle}>
+            {tabs.map(tab => <div className="tab" style={tabHeightStyle} key={tab}>{tab}</div>)}
+            <div className="tab" style={tabHeightStyle} onClick={onNewTab}>+</div>
         </div>
     );
 }

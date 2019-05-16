@@ -1,0 +1,11 @@
+.tab {
+    padding: 0px 10px;
+    float: left;
+    border-right: 1px #333 solid;
+    cursor: pointer;
+}
+
+.tabs {
+    background: #111;
+    color: #999;
+}
