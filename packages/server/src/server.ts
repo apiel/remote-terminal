@@ -4,6 +4,7 @@ import { info, error, success } from 'logol';
 import { spawn } from 'node-pty';
 import * as express from 'express';
 import * as expressWs from 'express-ws';
+import * as Ws from 'ws';
 import { Response, Request } from 'express-serve-static-core';
 // import * as bodyParser from 'body-parser';
 
@@ -12,7 +13,7 @@ const port = 3005;
 const terminals = {};
 const logs = {};
 let activePid: number;
-let webSocket: any;
+const webSockets: Ws[] = [];
 
 async function start() {
     info('Starting server.');
@@ -33,8 +34,8 @@ async function start() {
 
     app.all('/terminals/pid/:pid', (req: Request, res: Response) => {
         activePid = parseInt(req.params.pid, 10);
-        if (webSocket) {
-            webSocket.send(logs[terminals[activePid].pid]);
+        if (webSockets.length) {
+            webSockets.forEach(ws => ws.send(logs[terminals[activePid].pid]));
         }
         res.send('ok');
         res.end();
@@ -79,12 +80,8 @@ async function start() {
         logs[term.pid] = '';
         term.on('data', (data) => {
             logs[term.pid] += data;
-            if (webSocket && activePid === term.pid) {
-                try {
-                    buffer(webSocket, 5)(data);
-                } catch (ex) {
-                    // The WebSocket is not open, ignore
-                }
+            if (webSockets.length && activePid === term.pid) {
+                webSockets.forEach(ws => buffer(ws, 5)(data));
             }
         });
         res.send(term.pid.toString());
@@ -102,8 +99,8 @@ async function start() {
     //     res.end();
     // });
 
-    (app as any).ws('/terminals/:pid', (ws: any, req: any) => {
-        webSocket = ws;
+    (app as any).ws('/terminals/:pid', (ws: Ws, req: any) => {
+        webSockets.push(ws);
         activePid = parseInt(req.params.pid, 10);
 
         info('Connected to terminal ', terminals[activePid].pid);
@@ -112,14 +109,11 @@ async function start() {
         ws.on('message', (msg: string) => {
             terminals[activePid].write(msg);
         });
-        // we want to keep the session open
-        // ws.on('close', () => {
-        //     terminals[activePid].kill();
-        //     info('Closed terminal ', terminals[activePid].pid);
-        //     // Clean things up
-        //     delete terminals[terminals[activePid].pid];
-        //     delete logs[terminals[activePid].pid];
-        // });
+        ws.on('close', () => {
+            const index = webSockets.indexOf(ws);
+            webSockets.splice(index, 1);
+            info('Close websocket connection');
+        });
     });
 
     app.use((

@@ -58,20 +58,19 @@ const setContainer = (
         term.focus();
         openNewTerm = newTerm(setTabs);
 
-
         container.style.height = (window.innerHeight - TAB_HEIGHT) + 'px';
         (term as any).fit();
 
         const { data: list } = await axios.post(`/terminals/list`, {});
         if (!list.length) {
             const pid = await openNewTerm(tabs);
-            setActiveTab(pid);
             openWS(pid);
+            setActiveTab(pid);
         } else {
             setTabs(list);
             const [pid] = list;
-            setActiveTab(pid);
             openWS(pid);
+            setActiveTab(pid);
         }
     }
 }
@@ -90,7 +89,10 @@ export const Term = ({ tabs, setTabs, activeTab, setActiveTab }: Props) => {
         }
     }, [container]);
     React.useEffect(() => {
-        focus(activeTab);
+        console.log('activeTab', activeTab);
+        if (activeTab && activeTab.length) {
+            focus(activeTab);
+        }
     }, [activeTab]);
     return (
         <div ref={ref => { if (ref) container = ref; }} />
