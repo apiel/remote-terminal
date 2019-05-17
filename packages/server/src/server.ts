@@ -112,13 +112,14 @@ async function start() {
         ws.on('message', (msg: string) => {
             terminals[activePid].write(msg);
         });
-        ws.on('close', () => {
-            terminals[activePid].kill();
-            info('Closed terminal ', terminals[activePid].pid);
-            // Clean things up
-            delete terminals[terminals[activePid].pid];
-            delete logs[terminals[activePid].pid];
-        });
+        // we want to keep the session open
+        // ws.on('close', () => {
+        //     terminals[activePid].kill();
+        //     info('Closed terminal ', terminals[activePid].pid);
+        //     // Clean things up
+        //     delete terminals[terminals[activePid].pid];
+        //     delete logs[terminals[activePid].pid];
+        // });
     });
 
     app.use((

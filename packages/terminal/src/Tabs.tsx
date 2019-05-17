@@ -1,5 +1,4 @@
 import React from 'react';
-import Axios from 'axios';
 
 export const TAB_HEIGHT = 25;
 
@@ -10,9 +9,10 @@ const tabHeightStyle = {
 const onClickTab = (
     setActiveTab: React.Dispatch<React.SetStateAction<string>>,
     tab: string,
+    onSelectTab: (tab: string) => void,
 ) => () => {
     setActiveTab(tab);
-    Axios.post(`/terminals/pid/${tab}`); // need to move this in Term.tsx & clear tab & focus
+    onSelectTab(tab);
 }
 
 interface Props {
@@ -21,14 +21,21 @@ interface Props {
     activeTab: string,
     setActiveTab: React.Dispatch<React.SetStateAction<string>>,
     onNewTab: () => void,
+    onSelectTab?: (tab: string) => void,
 }
-export const Tabs = ({ tabs, onNewTab, activeTab, setActiveTab }: Props) => {
+export const Tabs = ({
+    tabs,
+    onNewTab = () => { },
+    activeTab,
+    setActiveTab,
+    onSelectTab = () => { },
+}: Props) => {
     return (
         <div className="tabs" style={tabHeightStyle}>
             {tabs.map(
                 tab => <div
                     className={`tab ${activeTab === tab && 'active'}`}
-                    onClick={onClickTab(setActiveTab, tab)}
+                    onClick={onClickTab(setActiveTab, tab, onSelectTab)}
                     style={tabHeightStyle}
                     key={tab}
                 >{tab}</div>

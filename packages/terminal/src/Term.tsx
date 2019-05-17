@@ -3,20 +3,26 @@ import axios from 'axios';
 import { Terminal } from 'xterm';
 import * as fit from 'xterm/lib/addons/fit/fit';
 import { AttachAddon } from 'xterm-addon-attach';
-import 'xterm/dist/xterm.css';
+import 'xterm/lib/xterm.css';
 import { TAB_HEIGHT } from './Tabs';
 
 Terminal.applyAddon(fit);
 
-function runRealTerminal(term: Terminal, socket: WebSocket): void {
+export let openNewTerm: ((tabs: string[]) => Promise<string>) | null = null;
+export let term: Terminal;
+
+async function focus(pid: string) {
+    term.clear();
+    term.focus();
+    await axios.post(`/terminals/pid/${pid}`);
+}
+
+function runRealTerminal(socket: WebSocket): void {
     term.loadAddon(new AttachAddon(socket));
 }
 
-export let openNewTerm: ((tabs: string[]) => Promise<string>) | null = null;
-
 const newTerm  = (
     setTabs: React.Dispatch<React.SetStateAction<string[]>>,
-    term: Terminal,
 ) => async (
     tabs: string[],
 ) => {
@@ -25,13 +31,13 @@ const newTerm  = (
     return pid;
 }
 
-const openWS = (term: Terminal, pid: string) => {
+const openWS = (pid: string) => {
     const { protocol, port, hostname } = window.location;
     const wsProtocol = (protocol === 'https:') ? 'wss:' : 'ws:';
     // ${port || 80}
     const socketURL = `${wsProtocol}//${hostname}:3005/terminals/${pid}`;
     const socket = new WebSocket(socketURL);
-    socket.onopen = () => runRealTerminal(term, socket);
+    socket.onopen = () => runRealTerminal(socket);
     socket.onclose = () => term.writeln('\r\n\r\nxterm.js close\r\n');
     socket.onerror = () => term.writeln('\r\n\r\nxterm.js close\r\n');
 }
@@ -39,17 +45,18 @@ const openWS = (term: Terminal, pid: string) => {
 const setContainer = (
     tabs: string[],
     setTabs: React.Dispatch<React.SetStateAction<string[]>>,
+    setActiveTab: React.Dispatch<React.SetStateAction<string>>,
 ) => async (container: HTMLDivElement) => {
     if (container) {
         console.log('Load terminal container');
         const windowsMode = ['Windows', 'Win16', 'Win32', 'WinCE'].indexOf(navigator.platform) >= 0;
-        const term = new Terminal({
+        term = new Terminal({
             windowsMode,
         });
         (window as any).term = term;  // Expose `term` to window for debugging purposes
         term.open(container);
         term.focus();
-        openNewTerm = newTerm(setTabs, term);
+        openNewTerm = newTerm(setTabs);
 
 
         container.style.height = (window.innerHeight - TAB_HEIGHT) + 'px';
@@ -58,11 +65,13 @@ const setContainer = (
         const { data: list } = await axios.post(`/terminals/list`, {});
         if (!list.length) {
             const pid = await openNewTerm(tabs);
-            openWS(term, pid);
+            setActiveTab(pid);
+            openWS(pid);
         } else {
             setTabs(list);
             const [pid] = list;
-            openWS(term, pid);
+            setActiveTab(pid);
+            openWS(pid);
         }
     }
 }
@@ -71,16 +80,17 @@ interface Props {
     tabs: string[],
     setTabs: React.Dispatch<React.SetStateAction<string[]>>,
     activeTab: string,
+    setActiveTab: React.Dispatch<React.SetStateAction<string>>,
 }
-export const Term = ({ tabs, setTabs, activeTab }: Props) => {
+export const Term = ({ tabs, setTabs, activeTab, setActiveTab }: Props) => {
     let container: HTMLDivElement | null = null;
     React.useEffect(() => {
         if (container) {
-            setContainer(tabs, setTabs)(container);
+            setContainer(tabs, setTabs, setActiveTab)(container);
         }
     }, [container]);
     React.useEffect(() => {
-
+        focus(activeTab);
     }, [activeTab]);
     return (
         <div ref={ref => { if (ref) container = ref; }} />
