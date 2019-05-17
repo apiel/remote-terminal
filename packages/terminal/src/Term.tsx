@@ -21,15 +21,15 @@ function runRealTerminal(socket: WebSocket): void {
     term.loadAddon(new AttachAddon(socket));
 }
 
-const newTerm  = (
+const newTerm = (
     setTabs: React.Dispatch<React.SetStateAction<string[]>>,
 ) => async (
     tabs: string[],
-) => {
-    const { data: pid } = await axios.post(`/terminals/new?cols=${term.cols}&rows=${term.rows}`, {});
-    setTabs([...tabs, pid]);
-    return pid;
-}
+    ) => {
+        const { data: pid } = await axios.post(`/terminals/new?cols=${term.cols}&rows=${term.rows}`, {});
+        setTabs([...tabs, pid]);
+        return pid;
+    }
 
 const openWS = (pid: string) => {
     const { protocol, port, hostname } = window.location;
@@ -40,6 +40,14 @@ const openWS = (pid: string) => {
     socket.onopen = () => runRealTerminal(socket);
     socket.onclose = () => term.writeln('\r\n\r\nxterm.js close\r\n');
     socket.onerror = () => term.writeln('\r\n\r\nxterm.js close\r\n');
+    return socket;
+}
+
+const trackMouse = (socket: WebSocket) => {
+    document.onmousemove = (ev: MouseEvent) => {
+        // console.log('mousemove', ev.x, ev.y);
+        socket.send(`@${ev.x}:${ev.y}`);
+    };
 }
 
 const setContainer = (
@@ -52,6 +60,7 @@ const setContainer = (
         const windowsMode = ['Windows', 'Win16', 'Win32', 'WinCE'].indexOf(navigator.platform) >= 0;
         term = new Terminal({
             windowsMode,
+            cursorBlink: true,
         });
         (window as any).term = term;  // Expose `term` to window for debugging purposes
         term.open(container);
@@ -62,16 +71,10 @@ const setContainer = (
         (term as any).fit();
 
         const { data: list } = await axios.post(`/terminals/list`, {});
-        if (!list.length) {
-            const pid = await openNewTerm(tabs);
-            openWS(pid);
-            setActiveTab(pid);
-        } else {
-            setTabs(list);
-            const [pid] = list;
-            openWS(pid);
-            setActiveTab(pid);
-        }
+        let pid = !list.length ? await openNewTerm(tabs) : list[0];
+        const socket = openWS(pid);
+        setActiveTab(pid);
+        trackMouse(socket);
     }
 }
 

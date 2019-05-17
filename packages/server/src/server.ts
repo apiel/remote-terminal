@@ -107,7 +107,11 @@ async function start() {
         ws.send(logs[terminals[activePid].pid]);
 
         ws.on('message', (msg: string) => {
-            terminals[activePid].write(msg);
+            if (msg[0] === '@') {
+                console.log('receive coordinqtes', msg);
+            } else {
+                terminals[activePid].write(msg);
+            }
         });
         ws.on('close', () => {
             const index = webSockets.indexOf(ws);

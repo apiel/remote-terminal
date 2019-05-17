@@ -1,0 +1,5 @@
+- cursor pos
+- text select
+- scroll pos
+- resize (the sreen resizing became the master)
+- provide an icon to resize full screen <->
