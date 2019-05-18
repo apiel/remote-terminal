@@ -60,8 +60,8 @@ const customWrite = () => {
             const [x, y] = data.substring(1).split(':');
             console.log('receive coordinate', x, y);
             if (cursor) {
-                cursor.style.left = `${x}px`;
-                cursor.style.top = `${y}px`;
+                cursor.style.left = `${parseInt(x, 10)+2}px`;
+                cursor.style.top = `${parseInt(y, 10)+2}px`;
             }
         } else {
             write(data);
