@@ -108,7 +108,8 @@ async function start() {
 
         ws.on('message', (msg: string) => {
             if (msg[0] === '@') {
-                console.log('receive coordinqtes', msg);
+                // console.log('receive coordinates', msg);
+                webSockets.forEach(ws => buffer(ws, 5)(msg)); // we could filter out the current ws
             } else {
                 terminals[activePid].write(msg);
             }

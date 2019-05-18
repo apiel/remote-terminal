@@ -18,3 +18,11 @@
     background: #111;
     color: #999;
 }
+
+.cursor {
+    position: absolute;
+    height: 10px;
+    width: 10px;
+    background: #F00;
+    z-index: 100;
+}

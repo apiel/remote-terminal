@@ -11,6 +11,8 @@ Terminal.applyAddon(fit);
 export let openNewTerm: ((tabs: string[]) => Promise<string>) | null = null;
 export let term: Terminal;
 
+let cursor: HTMLDivElement | null = null;;
+
 async function focus(pid: string) {
     term.clear();
     term.focus();
@@ -50,6 +52,23 @@ const trackMouse = (socket: WebSocket) => {
     };
 }
 
+const customWrite = () => {
+    const write = term.write.bind(term);
+    term.write = (data: string) => {
+        // console.log('receive data', data);
+        if (data[0] === '@') {
+            const [x, y] = data.substring(1).split(':');
+            console.log('receive coordinate', x, y);
+            if (cursor) {
+                cursor.style.left = `${x}px`;
+                cursor.style.top = `${y}px`;
+            }
+        } else {
+            write(data);
+        }
+    };
+}
+
 const setContainer = (
     tabs: string[],
     setTabs: React.Dispatch<React.SetStateAction<string[]>>,
@@ -65,6 +84,7 @@ const setContainer = (
         (window as any).term = term;  // Expose `term` to window for debugging purposes
         term.open(container);
         term.focus();
+        customWrite();
         openNewTerm = newTerm(setTabs);
 
         container.style.height = (window.innerHeight - TAB_HEIGHT) + 'px';
@@ -77,6 +97,8 @@ const setContainer = (
         trackMouse(socket);
     }
 }
+
+const Cursor = () => <div className="cursor" ref={ref => { if (ref) cursor = ref; }} />;
 
 interface Props {
     tabs: string[],
@@ -98,6 +120,9 @@ export const Term = ({ tabs, setTabs, activeTab, setActiveTab }: Props) => {
         }
     }, [activeTab]);
     return (
-        <div ref={ref => { if (ref) container = ref; }} />
+        <>
+            <Cursor />
+            <div ref={ref => { if (ref) container = ref; }} />
+        </>
     );
 }
