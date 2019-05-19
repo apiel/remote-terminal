@@ -5,14 +5,15 @@ import * as fit from 'xterm/lib/addons/fit/fit';
 import { AttachAddon } from 'xterm-addon-attach';
 import 'xterm/lib/xterm.css';
 import { TAB_HEIGHT } from './Tabs';
-import { ScrollBehaviorProperty } from 'csstype';
 
 Terminal.applyAddon(fit);
 
 export let openNewTerm: ((tabs: string[]) => Promise<string>) | null = null;
 export let term: Terminal;
+export let termContainer: HTMLDivElement;
 
-let cursor: HTMLDivElement | null = null;;
+let cursor: HTMLDivElement | null = null;
+let ws: WebSocket;
 
 async function focus(pid: string) {
     term.clear();
@@ -39,11 +40,11 @@ const openWS = (pid: string) => {
     const wsProtocol = (protocol === 'https:') ? 'wss:' : 'ws:';
     // ${port || 80}
     const socketURL = `${wsProtocol}//${hostname}:3005/terminals/${pid}`;
-    const socket = new WebSocket(socketURL);
-    socket.onopen = () => runRealTerminal(socket);
-    socket.onclose = () => term.writeln('\r\n\r\nxterm.js close\r\n');
-    socket.onerror = () => term.writeln('\r\n\r\nxterm.js close\r\n');
-    return socket;
+    ws = new WebSocket(socketURL);
+    ws.onopen = () => runRealTerminal(ws);
+    ws.onclose = () => term.writeln('\r\n\r\nxterm.js close\r\n');
+    ws.onerror = () => term.writeln('\r\n\r\nxterm.js close\r\n');
+    return ws;
 }
 
 const trackMouse = (socket: WebSocket) => {
@@ -95,7 +96,7 @@ const customWrite = () => {
         if (data[0] === '@') {
             if (data[1] === 'a') { // selection
                 const selection = data.substring(2).split(':').map(v => parseInt(v, 10));
-                console.log('select', selection);
+                // console.log('select', selection);
                 (term as any)._core.selectionManager.setSelection(...selection);
             } else if (data[1] === 's') { // scroll
                 // console.log('scroll', data);
@@ -105,6 +106,12 @@ const customWrite = () => {
                     // console.log('scrollTop', value);
                     viewport.scrollTop = value;
                 }
+            } else if (data[1] === 'f') { // fit screen
+                const [width, height] = data.substring(2).split(':');
+                console.log('fit screen', width, height);
+                termContainer.style.width = width + 'px';
+                termContainer.style.height = height + 'px';
+                (term as any).fit();
             } else { // ToDo: take care that the cursor dont get out of the frame
                 const [x, y] = data.substring(1).split(':');
                 // console.log('receive coordinate', x, y);
@@ -119,12 +126,24 @@ const customWrite = () => {
     };
 }
 
+export const fitScreen = () => {
+    if (termContainer) {
+        termContainer.style.width = window.innerWidth + 'px';
+        termContainer.style.height = (window.innerHeight - TAB_HEIGHT) + 'px';
+        (term as any).fit();
+        if (ws) {
+            ws.send(`@f${window.innerWidth}:${termContainer.style.height}`);
+        }
+    }
+}
+
 const setContainer = (
     tabs: string[],
     setTabs: React.Dispatch<React.SetStateAction<string[]>>,
     setActiveTab: React.Dispatch<React.SetStateAction<string>>,
 ) => async (container: HTMLDivElement) => {
     if (container) {
+        termContainer = container;
         console.log('Load terminal container');
         const windowsMode = ['Windows', 'Win16', 'Win32', 'WinCE'].indexOf(navigator.platform) >= 0;
         term = new Terminal({
@@ -137,8 +156,7 @@ const setContainer = (
         customWrite();
         openNewTerm = newTerm(setTabs);
 
-        container.style.height = (window.innerHeight - TAB_HEIGHT) + 'px';
-        (term as any).fit();
+        fitScreen();
 
         const { data: list } = await axios.post(`/terminals/list`, {});
         let pid = !list.length ? await openNewTerm(tabs) : list[0];
@@ -179,7 +197,7 @@ export const Term = ({ tabs, setTabs, activeTab, setActiveTab }: Props) => {
     return (
         <>
             <Cursor />
-            <div ref={ref => { if (ref) container = ref; }} />
+            <div ref={ref => { if (ref) container = ref; }} className="term-container" />
         </>
     );
 }

@@ -22,6 +22,7 @@ interface Props {
     setActiveTab: React.Dispatch<React.SetStateAction<string>>,
     onNewTab: () => void,
     onSelectTab?: (tab: string) => void,
+    onResize?: () => void,
 }
 export const Tabs = ({
     tabs,
@@ -29,6 +30,7 @@ export const Tabs = ({
     activeTab,
     setActiveTab,
     onSelectTab = () => { },
+    onResize = () => { },
 }: Props) => {
     return (
         <div className="tabs" style={tabHeightStyle}>
@@ -41,6 +43,7 @@ export const Tabs = ({
                 >{tab}</div>
             )}
             <div className="tab" style={tabHeightStyle} onClick={onNewTab}>+</div>
+            <div className="tab" style={tabHeightStyle} onClick={onResize}>⤢</div>
         </div>
     );
 }
