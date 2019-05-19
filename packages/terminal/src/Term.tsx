@@ -5,6 +5,7 @@ import * as fit from 'xterm/lib/addons/fit/fit';
 import { AttachAddon } from 'xterm-addon-attach';
 import 'xterm/lib/xterm.css';
 import { TAB_HEIGHT } from './Tabs';
+import { ScrollBehaviorProperty } from 'csstype';
 
 Terminal.applyAddon(fit);
 
@@ -52,16 +53,51 @@ const trackMouse = (socket: WebSocket) => {
     };
 }
 
+const getViewPort = () => {
+    const viewports = document.getElementsByClassName('xterm-viewport');
+    if (viewports.length) {
+        return viewports[0] as HTMLDivElement; // there might be better way to get viewport
+    }
+}
+
+let trackScrollActive = false;
+const trackScroll = (socket: WebSocket) => {
+    const viewport = getViewPort();
+    if (viewport) {
+        viewport.onscroll = (ev: Event) => {
+            if (trackScrollActive) {
+                // console.log('scroll', viewport.scrollTop);
+                socket.send(`@s${viewport.scrollTop}`);
+            }
+        };
+    }
+}
+const toggleTrackScroll = (state: boolean) => {
+    trackScrollActive = state;
+    console.log('toggleTrackScroll', trackScrollActive);
+}
+
+
 const customWrite = () => {
     const write = term.write.bind(term);
     term.write = (data: string) => {
         // console.log('receive data', data);
         if (data[0] === '@') {
-            const [x, y] = data.substring(1).split(':');
-            console.log('receive coordinate', x, y);
-            if (cursor) {
-                cursor.style.left = `${parseInt(x, 10)+2}px`;
-                cursor.style.top = `${parseInt(y, 10)+2}px`;
+            if (data[1] === 's') {
+                console.log('scroll', data);
+                const viewport = getViewPort();
+                if (viewport) {
+                    const value = parseInt(data.substring(2), 10);
+                    console.log('scrollTop', value);
+                    viewport.scrollTop = value;
+                }
+            } else { // ToDo: take care that the cursor dont get out of the frame
+                const [x, y] = data.substring(1).split(':');
+                // console.log('receive coordinate', x, y);
+                if (cursor) {
+                    cursor.style.left = `${parseInt(x, 10) + 2}px`;
+                    cursor.style.top = `${parseInt(y, 10) + 2}px`;
+                }
             }
         } else {
             write(data);
@@ -95,6 +131,8 @@ const setContainer = (
         const socket = openWS(pid);
         setActiveTab(pid);
         trackMouse(socket);
+        trackScroll(socket);
+        setTimeout(() => toggleTrackScroll(true), 3000);
     }
 }
 
