@@ -109,8 +109,8 @@ const customWrite = () => {
             } else if (data[1] === 'f') { // fit screen
                 const [width, height] = data.substring(2).split(':');
                 console.log('fit screen', width, height);
-                termContainer.style.width = width + 'px';
-                termContainer.style.height = height + 'px';
+                termContainer.style.width = width;
+                termContainer.style.height = height;
                 (term as any).fit();
             } else { // ToDo: take care that the cursor dont get out of the frame
                 const [x, y] = data.substring(1).split(':');
@@ -132,7 +132,7 @@ export const fitScreen = () => {
         termContainer.style.height = (window.innerHeight - TAB_HEIGHT) + 'px';
         (term as any).fit();
         if (ws) {
-            ws.send(`@f${window.innerWidth}:${termContainer.style.height}`);
+            ws.send(`@f${termContainer.style.width}:${termContainer.style.height}`);
         }
     }
 }
@@ -144,6 +144,7 @@ const setContainer = (
 ) => async (container: HTMLDivElement) => {
     if (container) {
         termContainer = container;
+        (window as any).termContainer = termContainer;
         console.log('Load terminal container');
         const windowsMode = ['Windows', 'Win16', 'Win32', 'WinCE'].indexOf(navigator.platform) >= 0;
         term = new Terminal({
