@@ -1,6 +1,6 @@
 import React from 'react';
 import axios from 'axios';
-import { Terminal } from 'xterm';
+import { Terminal, IEvent } from 'xterm';
 import * as fit from 'xterm/lib/addons/fit/fit';
 import { AttachAddon } from 'xterm-addon-attach';
 import 'xterm/lib/xterm.css';
@@ -74,21 +74,35 @@ const trackScroll = (socket: WebSocket) => {
 }
 const toggleTrackScroll = (state: boolean) => {
     trackScrollActive = state;
-    console.log('toggleTrackScroll', trackScrollActive);
+    // console.log('toggleTrackScroll', trackScrollActive);
 }
 
+const trackSelection = (socket: WebSocket) => {
+    term.onSelectionChange(() => {
+        // term.cols*(term._core.selectionManager.selectionEnd[1]-term._core.selectionManager.selectionStart[1]) + term._core.selectionManager.selectionEnd[0] - term._core.selectionManager.selectionStart[0]
+        const end = (term as any)._core.selectionManager.selectionEnd;
+        const start = (term as any)._core.selectionManager.selectionStart;
+        const length = term.cols * (end[1] - start[1]) + end[0] - start[0];
+        const selection = [...start, length];
+        socket.send(`@a${selection.join(':')}`);
+    });
+}
 
 const customWrite = () => {
     const write = term.write.bind(term);
     term.write = (data: string) => {
         // console.log('receive data', data);
         if (data[0] === '@') {
-            if (data[1] === 's') {
-                console.log('scroll', data);
+            if (data[1] === 'a') { // selection
+                const selection = data.substring(2).split(':').map(v => parseInt(v, 10));
+                console.log('select', selection);
+                (term as any)._core.selectionManager.setSelection(...selection);
+            } else if (data[1] === 's') { // scroll
+                // console.log('scroll', data);
                 const viewport = getViewPort();
                 if (viewport) {
                     const value = parseInt(data.substring(2), 10);
-                    console.log('scrollTop', value);
+                    // console.log('scrollTop', value);
                     viewport.scrollTop = value;
                 }
             } else { // ToDo: take care that the cursor dont get out of the frame
@@ -133,6 +147,11 @@ const setContainer = (
         trackMouse(socket);
         trackScroll(socket);
         setTimeout(() => toggleTrackScroll(true), 3000);
+        trackSelection(socket);
+        // term.onSelectionChange((e) => console.log('event', e));
+        // term._core.selectionManager.setSelection(19, 86, 3)
+        // term.cols*(term._core.selectionManager.selectionEnd[1]-term._core.selectionManager.selectionStart[1]) + term._core.selectionManager.selectionEnd[0] - term._core.selectionManager.selectionStart[0]
+        // term._core.selectionManager.setSelection(...term._core.selectionManager.selectionStart,term.cols*(term._core.selectionManager.selectionEnd[1]-term._core.selectionManager.selectionStart[1]) + term._core.selectionManager.selectionEnd[0] - term._core.selectionManager.selectionStart[0])
     }
 }
 
