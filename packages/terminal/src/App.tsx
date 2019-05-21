@@ -6,7 +6,7 @@ import { Tabs } from './Tabs';
 
 const onNewTab = (tabs: string[]) => async () => {
     if (openNewTerm) {
-        await openNewTerm(tabs);
+        await openNewTerm();
     }
 }
 

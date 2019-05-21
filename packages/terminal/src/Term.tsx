@@ -8,7 +8,6 @@ import { TAB_HEIGHT } from './Tabs';
 
 Terminal.applyAddon(fit);
 
-export let openNewTerm: ((tabs: string[]) => Promise<string>) | null = null;
 export let term: Terminal;
 export let termContainer: HTMLDivElement;
 
@@ -25,10 +24,12 @@ function runRealTerminal(socket: WebSocket): void {
     term.loadAddon(new AttachAddon(socket));
 }
 
-const newTerm = () => async (tabs: string[]) => {
-    const { data: pid } = await axios.post(`/terminals/new?cols=${term.cols}&rows=${term.rows}`, {});
-    return pid;
-}
+export const openNewTerm = () => {
+    if (ws) {
+        ws.send(`@new`);
+    }
+};
+
 
 const openWS = () => {
     const { protocol, port, hostname } = window.location;
@@ -163,20 +164,14 @@ const setContainer = (
         term.open(container);
         term.focus();
         customWrite(setTabs, setActiveTab);
-        openNewTerm = newTerm();
 
         fitScreen();
 
         const socket = openWS();
-        // setActiveTab(pid);
         trackMouse(socket);
         trackScroll(socket);
         setTimeout(() => toggleTrackScroll(true), 3000);
         trackSelection(socket);
-        // term.onSelectionChange((e) => console.log('event', e));
-        // term._core.selectionManager.setSelection(19, 86, 3)
-        // term.cols*(term._core.selectionManager.selectionEnd[1]-term._core.selectionManager.selectionStart[1]) + term._core.selectionManager.selectionEnd[0] - term._core.selectionManager.selectionStart[0]
-        // term._core.selectionManager.setSelection(...term._core.selectionManager.selectionStart,term.cols*(term._core.selectionManager.selectionEnd[1]-term._core.selectionManager.selectionStart[1]) + term._core.selectionManager.selectionEnd[0] - term._core.selectionManager.selectionStart[0])
     }
 }
 

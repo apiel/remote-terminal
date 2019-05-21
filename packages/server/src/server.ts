@@ -74,13 +74,6 @@ async function start() {
         };
     }
 
-    app.all('/terminals/new', (req: Request, res: Response) => {
-        const cols = parseInt(req.query.cols, 10);
-        const rows = parseInt(req.query.rows, 10);
-        res.send(newTerm(cols, rows).toString());
-        res.end();
-    });
-
     function newTerm(cols?: number, rows?: number) {
         const term = spawn(process.platform === 'win32' ? 'cmd.exe' : 'bash', [], {
             name: 'xterm-color',
@@ -110,16 +103,20 @@ async function start() {
 
         if (!Object.keys(terminals).length) {
             newTerm();
+        } else {
+            sendList();
         }
 
         info('Connected to terminal ', terminals[activePid].pid);
-        sendList();
         ws.send(logs[terminals[activePid].pid]);
 
         ws.on('message', (msg: string) => {
             if (msg[0] === '@') {
-                // console.log('receive coordinates', msg);
-                webSockets.forEach(ws => buffer(ws, 5)(msg)); // we could filter out the current ws
+                if (msg === '@new') {
+                    newTerm();
+                } else {
+                    webSockets.forEach(ws => buffer(ws, 5)(msg)); // we could filter out the current ws
+                }
             } else {
                 terminals[activePid].write(msg);
             }
