@@ -140,6 +140,7 @@ export const fitScreen = () => {
         termContainer.style.width = window.innerWidth + 'px';
         termContainer.style.height = (window.innerHeight - TAB_HEIGHT) + 'px';
         (term as any).fit();
+        (term as any).focus();
         if (ws) {
             ws.send(`@f${termContainer.style.width}:${termContainer.style.height}`);
         }

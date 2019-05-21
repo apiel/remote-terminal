@@ -115,6 +115,12 @@ async function start() {
                 if (msg === '@new') {
                     newTerm();
                 } else {
+                    if (msg[1] === 'f') { // fit screen
+                        const [cols, rows] = msg.substring(2).split(':');
+                        for (const pid in terminals) {
+                            terminals[pid].resize(parseInt(cols, 10), parseInt(rows, 10));
+                        }
+                    }
                     webSockets.forEach(ws => buffer(ws, 5)(msg)); // we could filter out the current ws
                 }
             } else {
