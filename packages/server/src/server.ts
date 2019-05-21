@@ -34,17 +34,29 @@ async function start() {
 
     app.all('/terminals/pid/:pid', (req: Request, res: Response) => {
         activePid = parseInt(req.params.pid, 10);
+        sendList();
         if (webSockets.length) {
-            webSockets.forEach(ws => ws.send(logs[terminals[activePid].pid]));
+            webSockets.forEach(ws => {
+                ws.send(`@c\n\r`);
+                ws.send(logs[terminals[activePid].pid]);
+            });
         }
         res.send('ok');
         res.end();
     });
 
-    app.all('/terminals/list', (req: Request, res: Response) => {
-        res.send(Object.keys(terminals));
-        res.end();
-    });
+    function sendList() {
+        if (webSockets.length) {
+            const list = Object.keys(terminals);
+            const data = JSON.stringify({
+                active: activePid,
+                list,
+            });
+            webSockets.forEach(ws => {
+                ws.send(`@t${data}\n\r`);
+            });
+        }
+    }
 
     // string message buffering
     function buffer(socket, timeout: number) {
@@ -65,7 +77,11 @@ async function start() {
     app.all('/terminals/new', (req: Request, res: Response) => {
         const cols = parseInt(req.query.cols, 10);
         const rows = parseInt(req.query.rows, 10);
+        res.send(newTerm(cols, rows).toString());
+        res.end();
+    });
 
+    function newTerm(cols?: number, rows?: number) {
         const term = spawn(process.platform === 'win32' ? 'cmd.exe' : 'bash', [], {
             name: 'xterm-color',
             cols: cols || 80,
@@ -84,26 +100,20 @@ async function start() {
                 webSockets.forEach(ws => buffer(ws, 5)(data));
             }
         });
-        res.send(term.pid.toString());
-        res.end();
-    });
+        activePid = term.pid;
+        sendList();
+        return term.pid;
+    }
 
-    // app.post('/terminals/:pid/size', (req, res) => {
-    //     const pid = parseInt(req.params.pid, 10);
-    //         cols = parseInt(req.query.cols),
-    //         rows = parseInt(req.query.rows),
-    //         term = terminals[pid];
-
-    //     term.resize(cols, rows);
-    //     console.log('Resized terminal ' + pid + ' to ' + cols + ' cols and ' + rows + ' rows.');
-    //     res.end();
-    // });
-
-    (app as any).ws('/terminals/:pid', (ws: Ws, req: any) => {
+    (app as any).ws('/terminals', (ws: Ws, req: any) => {
         webSockets.push(ws);
-        activePid = parseInt(req.params.pid, 10);
+
+        if (!Object.keys(terminals).length) {
+            newTerm();
+        }
 
         info('Connected to terminal ', terminals[activePid].pid);
+        sendList();
         ws.send(logs[terminals[activePid].pid]);
 
         ws.on('message', (msg: string) => {

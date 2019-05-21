@@ -25,21 +25,16 @@ function runRealTerminal(socket: WebSocket): void {
     term.loadAddon(new AttachAddon(socket));
 }
 
-const newTerm = (
-    setTabs: React.Dispatch<React.SetStateAction<string[]>>,
-) => async (
-    tabs: string[],
-    ) => {
-        const { data: pid } = await axios.post(`/terminals/new?cols=${term.cols}&rows=${term.rows}`, {});
-        setTabs([...tabs, pid]);
-        return pid;
-    }
+const newTerm = () => async (tabs: string[]) => {
+    const { data: pid } = await axios.post(`/terminals/new?cols=${term.cols}&rows=${term.rows}`, {});
+    return pid;
+}
 
-const openWS = (pid: string) => {
+const openWS = () => {
     const { protocol, port, hostname } = window.location;
     const wsProtocol = (protocol === 'https:') ? 'wss:' : 'ws:';
     // ${port || 80}
-    const socketURL = `${wsProtocol}//${hostname}:3005/terminals/${pid}`;
+    const socketURL = `${wsProtocol}//${hostname}:3005/terminals`;
     ws = new WebSocket(socketURL);
     ws.onopen = () => runRealTerminal(ws);
     ws.onclose = () => term.writeln('\r\n\r\nxterm.js close\r\n');
@@ -91,7 +86,10 @@ const trackSelection = (socket: WebSocket) => {
     });
 }
 
-const customWrite = () => {
+const customWrite = (
+    setTabs: React.Dispatch<React.SetStateAction<string[]>>,
+    setActiveTab: React.Dispatch<React.SetStateAction<string>>,
+) => {
     const write = term.write.bind(term);
     term.write = (data: string) => {
         // console.log('receive data', data);
@@ -100,6 +98,14 @@ const customWrite = () => {
                 const selection = data.substring(2).split(':').map(v => parseInt(v, 10));
                 console.log('select', selection);
                 (term as any)._core.selectionManager.setSelection(...selection);
+            } else if (data[1] === 'c') {
+                term.clear();
+            } else if (data[1] === 'f') { // fit screen
+                const [width, height] = data.substring(2).split(':');
+                console.log('fit screen', width, height);
+                termContainer.style.width = width;
+                termContainer.style.height = height;
+                (term as any).fit();
             } else if (data[1] === 's') { // scroll
                 // console.log('scroll', data);
                 const viewport = getViewPort();
@@ -108,12 +114,10 @@ const customWrite = () => {
                     // console.log('scrollTop', value);
                     viewport.scrollTop = value;
                 }
-            } else if (data[1] === 'f') { // fit screen
-                const [width, height] = data.substring(2).split(':');
-                console.log('fit screen', width, height);
-                termContainer.style.width = width;
-                termContainer.style.height = height;
-                (term as any).fit();
+            } else if (data[1] === 't') { // tab
+                const tabs = JSON.parse(data.substring(2));
+                setTabs(tabs.list);
+                setActiveTab(tabs.active.toString());
             } else { // ToDo: take care that the cursor dont get out of the frame
                 const [x, y] = data.substring(1).split(':');
                 // console.log('receive coordinate', x, y);
@@ -158,15 +162,13 @@ const setContainer = (
         (window as any).term = term;  // Expose `term` to window for debugging purposes
         term.open(container);
         term.focus();
-        customWrite();
-        openNewTerm = newTerm(setTabs);
+        customWrite(setTabs, setActiveTab);
+        openNewTerm = newTerm();
 
         fitScreen();
 
-        const { data: list } = await axios.post(`/terminals/list`, {});
-        let pid = !list.length ? await openNewTerm(tabs) : list[0];
-        const socket = openWS(pid);
-        setActiveTab(pid);
+        const socket = openWS();
+        // setActiveTab(pid);
         trackMouse(socket);
         trackScroll(socket);
         setTimeout(() => toggleTrackScroll(true), 3000);
