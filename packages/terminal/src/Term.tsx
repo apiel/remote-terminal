@@ -83,9 +83,11 @@ const trackSelection = (socket: WebSocket) => {
         // term.cols*(term._core.selectionManager.selectionEnd[1]-term._core.selectionManager.selectionStart[1]) + term._core.selectionManager.selectionEnd[0] - term._core.selectionManager.selectionStart[0]
         const end = (term as any)._core.selectionManager.selectionEnd;
         const start = (term as any)._core.selectionManager.selectionStart;
-        const length = term.cols * (end[1] - start[1]) + end[0] - start[0];
-        const selection = [...start, length];
-        socket.send(`@a${selection.join(':')}`);
+        if (end && start && end.length === 2 && start.length === 2) {
+            const length = term.cols * (end[1] - start[1]) + end[0] - start[0];
+            const selection = [...start, length];
+            socket.send(`@a${selection.join(':')}`);
+        }
     });
 }
 
@@ -96,7 +98,7 @@ const customWrite = () => {
         if (data[0] === '@') {
             if (data[1] === 'a') { // selection
                 const selection = data.substring(2).split(':').map(v => parseInt(v, 10));
-                // console.log('select', selection);
+                console.log('select', selection);
                 (term as any)._core.selectionManager.setSelection(...selection);
             } else if (data[1] === 's') { // scroll
                 // console.log('scroll', data);
@@ -116,8 +118,10 @@ const customWrite = () => {
                 const [x, y] = data.substring(1).split(':');
                 // console.log('receive coordinate', x, y);
                 if (cursor) {
-                    cursor.style.left = `${parseInt(x, 10) + 2}px`;
-                    cursor.style.top = `${parseInt(y, 10) + 2}px`;
+                    const left = Math.min(window.innerWidth - 10, parseInt(x, 10) + 2);
+                    const top = Math.min(window.innerHeight - 10, parseInt(y, 10) + 2);
+                    cursor.style.left = `${left}px`;
+                    cursor.style.top = `${top}px`;
                 }
             }
         } else {
