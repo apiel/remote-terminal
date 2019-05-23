@@ -30,7 +30,6 @@ const App: React.FC = () => {
                 onResize={onResize}
             />
             <Term
-                tabs={tabs}
                 setTabs={setTabs}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}

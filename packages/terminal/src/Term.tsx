@@ -1,6 +1,6 @@
 import React from 'react';
 import axios from 'axios';
-import { Terminal, IEvent } from 'xterm';
+import { Terminal } from 'xterm';
 import * as fit from 'xterm/lib/addons/fit/fit';
 import { AttachAddon } from 'xterm-addon-attach';
 import 'xterm/lib/xterm.css';
@@ -15,9 +15,12 @@ let cursor: HTMLDivElement | null = null;
 let ws: WebSocket;
 
 async function focus(pid: string) {
-    term.clear();
-    term.focus();
-    await axios.post(`/terminals/pid/${pid}`);
+    if (ws) {
+        // term.clear();
+        term.focus();
+        // await axios.post(`/terminals/pid/${pid}`);
+        ws.send(`@u${pid}`);
+    }
 }
 
 function runRealTerminal(socket: WebSocket): void {
@@ -148,7 +151,6 @@ export const fitScreen = () => {
 }
 
 const setContainer = (
-    tabs: string[],
     setTabs: React.Dispatch<React.SetStateAction<string[]>>,
     setActiveTab: React.Dispatch<React.SetStateAction<string>>,
 ) => async (container: HTMLDivElement) => {
@@ -179,16 +181,15 @@ const setContainer = (
 const Cursor = () => <div className="cursor" ref={ref => { if (ref) cursor = ref; }} />;
 
 interface Props {
-    tabs: string[],
-    setTabs: React.Dispatch<React.SetStateAction<string[]>>,
-    activeTab: string,
-    setActiveTab: React.Dispatch<React.SetStateAction<string>>,
+    setTabs: React.Dispatch<React.SetStateAction<string[]>>, // should rename to setList
+    activeTab: string, // activePid
+    setActiveTab: React.Dispatch<React.SetStateAction<string>>, // setActivePid
 }
-export const Term = ({ tabs, setTabs, activeTab, setActiveTab }: Props) => {
+export const Term = ({ setTabs, activeTab, setActiveTab }: Props) => {
     let container: HTMLDivElement | null = null;
     React.useEffect(() => {
         if (container) {
-            setContainer(tabs, setTabs, setActiveTab)(container);
+            setContainer(setTabs, setActiveTab)(container);
         }
     }, [container]);
     React.useEffect(() => {

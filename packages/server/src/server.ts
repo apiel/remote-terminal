@@ -32,8 +32,8 @@ async function start() {
     //     );
     // }
 
-    app.all('/terminals/pid/:pid', (req: Request, res: Response) => {
-        activePid = parseInt(req.params.pid, 10);
+    function setActivePid(pid: number) {
+        activePid = pid;
         sendList();
         if (webSockets.length) {
             webSockets.forEach(ws => {
@@ -41,9 +41,14 @@ async function start() {
                 ws.send(logs[terminals[activePid].pid]);
             });
         }
-        res.send('ok');
-        res.end();
-    });
+    }
+
+    // app.all('/terminals/pid/:pid', (req: Request, res: Response) => {
+    //     const pid = parseInt(req.params.pid, 10);
+    //     setActivePid(pid);
+    //     res.send('ok');
+    //     res.end();
+    // });
 
     function sendList() {
         if (webSockets.length) {
@@ -114,6 +119,9 @@ async function start() {
             if (msg[0] === '@') {
                 if (msg === '@new') {
                     newTerm();
+                } else if (msg[1] === 'u') { // focus
+                    const pid = parseInt(msg.substring(2), 10);
+                    setActivePid(pid);
                 } else {
                     if (msg[1] === 'f') { // fit screen
                         const [cols, rows] = msg.substring(2).split(':');
